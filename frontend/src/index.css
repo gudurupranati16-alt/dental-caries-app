@@ -1,0 +1,762 @@
+/* ============================================================
+   Google Fonts — must be first @import
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Serif+Display:ital@0;1&display=swap');
+
+@import "tailwindcss";
+
+/* ============================================================
+   Design Tokens
+   ============================================================ */
+:root {
+  /* Backgrounds */
+  --bg-deep:     #0a0e14;
+  --bg-surface:  #111820;
+  --bg-card:     #161e28;
+  --bg-elevated: #1c2636;
+  --bg-hover:    #1e2d40;
+
+  /* Teal accent (clinical, surgical) */
+  --teal-50:  #f0fdf9;
+  --teal-100: #ccfbf1;
+  --teal-400: #2dd4bf;
+  --teal-500: #14b8a6;
+  --teal-600: #0d9488;
+  --teal-700: #0f766e;
+
+  /* Brown/amber accent (dental, organic warmth) */
+  --brown-300: #d4a76a;
+  --brown-400: #c4924c;
+  --brown-500: #a07840;
+  --brown-600: #7c5c2f;
+
+  /* Text */
+  --text-primary:   #e8edf5;
+  --text-secondary: #8a9ab5;
+  --text-muted:     #4a5568;
+
+  /* Borders */
+  --border-subtle: rgba(255,255,255,0.07);
+  --border-card:   rgba(255,255,255,0.1);
+
+  /* Severity colors */
+  --color-sound:    #2dd4bf;
+  --color-early:    #fbbf24;
+  --color-moderate: #f97316;
+  --color-severe:   #ef4444;
+  --color-root:     #a855f7;
+
+  /* Animation */
+  --duration-fast:   150ms;
+  --duration-normal: 300ms;
+  --duration-slow:   600ms;
+  --ease-out:        cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in-out:     cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* ============================================================
+   Prefers-reduced-motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:        0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration:       0.01ms !important;
+    scroll-behavior:           auto !important;
+  }
+  .no-reduce-motion { display: none; }
+}
+
+/* ============================================================
+   Base Reset
+   ============================================================ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3 {
+  font-family: 'DM Serif Display', Georgia, serif;
+  line-height: 1.2;
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--teal-700); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--teal-600); }
+
+/* ============================================================
+   Focus visible
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--teal-400);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ============================================================
+   Utility classes
+   ============================================================ */
+.section-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.section-padding {
+  padding: 5rem 0;
+}
+
+.section-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--teal-400);
+  margin-bottom: 0.75rem;
+}
+
+.section-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.section-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  max-width: 600px;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--teal-500), var(--teal-600));
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-out);
+  box-shadow: 0 4px 20px rgba(20, 184, 166, 0.3);
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(20, 184, 166, 0.45);
+  background: linear-gradient(135deg, var(--teal-400), var(--teal-500));
+}
+
+.btn-primary:active { transform: translateY(0); }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-card);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-out);
+  text-decoration: none;
+}
+
+.btn-ghost:hover {
+  border-color: var(--teal-400);
+  color: var(--teal-400);
+  background: rgba(45, 212, 191, 0.05);
+}
+
+/* ============================================================
+   Cards
+   ============================================================ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.card:hover {
+  border-color: rgba(45, 212, 191, 0.3);
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* ============================================================
+   Gradient text
+   ============================================================ */
+.gradient-text {
+  background: linear-gradient(135deg, var(--teal-400), var(--brown-300));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   Glass panel
+   ============================================================ */
+.glass {
+  background: rgba(22, 30, 40, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-card);
+}
+
+/* ============================================================
+   Animated connector line
+   ============================================================ */
+.connector-line {
+  stroke: var(--teal-600);
+  stroke-width: 2;
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  transition: stroke-dashoffset 0.6s var(--ease-out);
+}
+.connector-line.active {
+  stroke-dashoffset: 0;
+  stroke: var(--teal-400);
+}
+
+/* ============================================================
+   Dropzone
+   ============================================================ */
+.dropzone {
+  border: 2px dashed var(--border-card);
+  border-radius: 1rem;
+  transition: all var(--duration-normal) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+.dropzone.active {
+  border-color: var(--teal-400);
+  background: rgba(45, 212, 191, 0.05);
+  transform: scale(1.01);
+}
+
+.dropzone.pulse-focus {
+  animation: dropzonePulse 2s ease-in-out;
+}
+
+@keyframes dropzonePulse {
+  0%, 100% { border-color: var(--border-card); box-shadow: none; }
+  50%       { border-color: var(--teal-400); box-shadow: 0 0 0 4px rgba(45,212,191,0.2); }
+}
+
+/* ============================================================
+   Shimmer skeleton
+   ============================================================ */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 25%,
+    var(--bg-elevated) 50%,
+    var(--bg-card) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 0.5rem;
+}
+
+/* ============================================================
+   Progress bar
+   ============================================================ */
+.progress-bar {
+  height: 3px;
+  background: var(--bg-elevated);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-500), var(--teal-400));
+  border-radius: 2px;
+  transition: width var(--duration-slow) var(--ease-out);
+}
+
+/* ============================================================
+   Confidence bar animation
+   ============================================================ */
+@keyframes fillBar {
+  from { width: 0%; }
+  to   { width: var(--target-width); }
+}
+
+.confidence-bar {
+  height: 10px;
+  background: var(--bg-elevated);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.confidence-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  animation: fillBar 1.2s var(--ease-out) forwards;
+  background: linear-gradient(90deg, var(--teal-600), var(--teal-400));
+}
+
+/* ============================================================
+   Severity badge colors
+   ============================================================ */
+.badge-sound    { background: rgba(45,212,191,0.15);  color: var(--color-sound);    border: 1px solid rgba(45,212,191,0.4); }
+.badge-early    { background: rgba(251,191,36,0.15);  color: var(--color-early);    border: 1px solid rgba(251,191,36,0.4); }
+.badge-moderate { background: rgba(249,115,22,0.15);  color: var(--color-moderate); border: 1px solid rgba(249,115,22,0.4); }
+.badge-severe   { background: rgba(239,68,68,0.15);   color: var(--color-severe);   border: 1px solid rgba(239,68,68,0.4); }
+.badge-root     { background: rgba(168,85,247,0.15);  color: var(--color-root);     border: 1px solid rgba(168,85,247,0.4); }
+
+.severity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 1rem;
+  border-radius: 2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+   Toggle Switch
+   ============================================================ */
+.toggle-switch {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.toggle-switch input { display: none; }
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-elevated);
+  border-radius: 14px;
+  border: 1px solid var(--border-card);
+  transition: background var(--duration-normal);
+}
+
+input:checked + .toggle-track { background: var(--teal-600); }
+
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  transition: transform var(--duration-normal) var(--ease-out);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+input:checked ~ .toggle-thumb { transform: translateX(24px); }
+
+/* ============================================================
+   Model flip card
+   ============================================================ */
+.flip-card {
+  perspective: 1000px;
+  height: 220px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s var(--ease-in-out);
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+}
+
+.flip-card-back { transform: rotateY(180deg); }
+
+.flip-card.selected .flip-card-front,
+.flip-card.selected .flip-card-back {
+  border-color: var(--teal-400);
+  box-shadow: 0 0 0 2px rgba(45,212,191,0.2);
+}
+
+/* ============================================================
+   Accordion
+   ============================================================ */
+.accordion-content {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.4s var(--ease-out);
+}
+.accordion-content.open { max-height: 400px; }
+
+/* ============================================================
+   Tooltip
+   ============================================================ */
+.tooltip-wrapper {
+  position: relative;
+}
+.tooltip-wrapper .tooltip-text {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.9);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-card);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.4rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: all var(--duration-fast) var(--ease-out);
+  z-index: 50;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.tooltip-wrapper:hover .tooltip-text {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/* ============================================================
+   Nav
+   ============================================================ */
+.nav-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 64px;
+  background: rgba(10, 14, 20, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes drift {
+  0%   { transform: translate(0px, 0px) rotate(0deg) scale(1); }
+  33%  { transform: translate(15px, -10px) rotate(2deg) scale(1.02); }
+  66%  { transform: translate(-10px, 8px) rotate(-1deg) scale(0.98); }
+  100% { transform: translate(0px, 0px) rotate(0deg) scale(1); }
+}
+
+.animate-fade-up  { animation: fadeUp 0.7s var(--ease-out) both; }
+.animate-fade-in  { animation: fadeIn 0.5s var(--ease-out) both; }
+.animate-drift    { animation: drift 12s ease-in-out infinite; }
+
+/* Stagger helpers */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* ============================================================
+   Pipeline stepper
+   ============================================================ */
+.pipeline-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-out);
+  flex: 1;
+}
+
+.pipeline-node .node-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--border-card);
+  background: var(--bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  transition: all var(--duration-normal) var(--ease-out);
+  position: relative;
+  z-index: 1;
+}
+
+.pipeline-node.active .node-circle {
+  border-color: var(--teal-400);
+  background: rgba(45,212,191,0.12);
+  box-shadow: 0 0 0 6px rgba(45,212,191,0.12), 0 0 20px rgba(45,212,191,0.3);
+}
+
+.pipeline-node.completed .node-circle {
+  border-color: var(--teal-600);
+  background: rgba(45,212,191,0.08);
+}
+
+.pipeline-node.dimmed { opacity: 0.4; }
+
+.pipeline-node .node-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  max-width: 90px;
+  line-height: 1.3;
+  transition: color var(--duration-normal);
+}
+.pipeline-node.active .node-label { color: var(--teal-400); }
+
+/* ============================================================
+   Recharts overrides
+   ============================================================ */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: rgba(255,255,255,0.05) !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-card) !important;
+  border-radius: 0.5rem !important;
+  color: var(--text-primary) !important;
+}
+
+/* ============================================================
+   Compare slider overrides
+   ============================================================ */
+.react-compare-slider-handle {
+  background: var(--teal-400) !important;
+  width: 3px !important;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 768px) {
+  .section-padding { padding: 3rem 0; }
+
+  /* Pipeline becomes vertical accordion on mobile */
+  .pipeline-horizontal { display: none !important; }
+  .pipeline-vertical   { display: block !important; }
+}
+
+@media (min-width: 769px) {
+  .pipeline-vertical { display: none; }
+}
+
+/* ============================================================
+   Stat card
+   ============================================================ */
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 1rem;
+  padding: 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-out);
+  cursor: default;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--teal-500), var(--brown-400));
+  opacity: 0;
+  transition: opacity var(--duration-normal);
+}
+
+.stat-card:hover::before { opacity: 1; }
+.stat-card:hover {
+  border-color: rgba(45,212,191,0.25);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+}
+
+.stat-number {
+  font-family: 'DM Serif Display', serif;
+  font-size: 3.5rem;
+  line-height: 1;
+  color: var(--teal-400);
+}
+
+.stat-suffix {
+  font-size: 2rem;
+  color: var(--brown-300);
+}
+
+/* ============================================================
+   Comparison panel
+   ============================================================ */
+.compare-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  align-items: center;
+  transition: background var(--duration-fast);
+}
+.compare-row:hover { background: var(--bg-hover); }
+
+/* ============================================================
+   Inference step indicators
+   ============================================================ */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all var(--duration-normal);
+}
+.step-indicator.pending  { color: var(--text-muted); }
+.step-indicator.running  { color: var(--teal-400); background: rgba(45,212,191,0.08); }
+.step-indicator.done     { color: var(--teal-600); }
+
+/* ============================================================
+   Legend swatch
+   ============================================================ */
+.legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+}
+.legend-swatch:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 8px currentColor;
+}
+
+/* ============================================================
+   Sortable table
+   ============================================================ */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: color var(--duration-fast);
+}
+.sortable-th:hover { color: var(--teal-400); }
+.sortable-th.sorted { color: var(--teal-400); }
+
+/* ============================================================
+   Confusion matrix cell
+   ============================================================ */
+.cm-cell {
+  width: 64px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast);
+  border-radius: 4px;
+  position: relative;
+}
+.cm-cell.highlight { filter: brightness(1.4); outline: 2px solid var(--teal-400); }
+
+/* ============================================================
+   Avatar chip
+   ============================================================ */
+.avatar-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 2rem;
+  transition: all var(--duration-normal);
+}
+.avatar-chip:hover {
+  border-color: var(--teal-400);
+  background: var(--bg-elevated);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal-600), var(--brown-500));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: white;
+  flex-shrink: 0;
+}
