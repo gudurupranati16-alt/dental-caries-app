@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+dist/
+coverage/
+
+# Data and artifacts
+datasets/
+data/
+training_data/
+validation_data/
+test_data/
+DENTEX/
+dentex_dataset/
+prepared_dataset/
+training/runs/
+training/artifacts/
+training/prepared/
+checkpoints/
+*.pt
+*.pth
+*.onnx
+*.engine
+*.tflite
+*.pickle
+*.pkl
+
+# Logs and local outputs
+*.log
+*.tmp
+*.bak
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

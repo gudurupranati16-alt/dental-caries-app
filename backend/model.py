@@ -1,178 +1,138 @@
-"""
-model.py — U-Net inference with graceful mock fallback.
-
-If unet_checkpoint.pth is present, loads and runs the real model.
-Otherwise returns a realistic synthetic mask + plausible metrics.
-"""
+from __future__ import annotations
 
 import io
-import time
-import base64
 import os
-import numpy as np
-from PIL import Image, ImageFilter, ImageDraw
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-IMG_SIZE = 256
-CLASSES = ["Sound", "Early Enamel", "Moderate Dentinal", "Severe", "Root Surface"]
-CLASS_COLORS = {
-    "Sound":             (30,  200, 180),
-    "Early Enamel":      (255, 220,  80),
-    "Moderate Dentinal": (255, 140,  40),
-    "Severe":            (220,  50,  50),
-    "Root Surface":      (160,  80, 200),
-}
+from PIL import Image
 
-_model = None
-_use_mock = True
+MODEL_ENV = "MODEL_PATH"
+DEVICE_ENV = "MODEL_DEVICE"
+CONF_ENV = "MODEL_CONFIDENCE"
+IMGSZ_ENV = "MODEL_IMGSZ"
 
 
-def load_model(checkpoint_path: str = "unet_checkpoint.pth"):
-    global _model, _use_mock
-    if not os.path.exists(checkpoint_path):
-        print(f"[model] No checkpoint at '{checkpoint_path}' — running in mock mode.")
-        _use_mock = True
-        return
+class ModelNotConfiguredError(RuntimeError):
+    pass
+
+
+@dataclass
+class ModelState:
+    model: Any | None = None
+    model_path: Path | None = None
+    error: str | None = None
+    device: str | None = None
+    imgsz: int = 640
+    conf: float = 0.25
+
+
+STATE = ModelState()
+
+
+def _resolve_model_path(model_path: str | os.PathLike[str] | None = None) -> Path | None:
+    raw = str(model_path or os.getenv(MODEL_ENV, "")).strip()
+    if not raw:
+        return None
+    return Path(raw).expanduser().resolve()
+
+
+def load_model(model_path: str | os.PathLike[str] | None = None, device: str | None = None) -> ModelState:
+    resolved_path = _resolve_model_path(model_path)
+    STATE.device = device or os.getenv(DEVICE_ENV) or None
+    STATE.imgsz = int(os.getenv(IMGSZ_ENV, "640"))
+    STATE.conf = float(os.getenv(CONF_ENV, "0.25"))
+
+    if resolved_path is None:
+        STATE.model = None
+        STATE.model_path = None
+        STATE.error = f"Model checkpoint not installed. Please configure {MODEL_ENV}."
+        return STATE
+
+    if not resolved_path.exists():
+        STATE.model = None
+        STATE.model_path = resolved_path
+        STATE.error = f"Model checkpoint not found at {resolved_path}. Please configure {MODEL_ENV}."
+        return STATE
 
     try:
-        import torch
-        from torchvision.models.segmentation import fcn_resnet50
+        from ultralytics import YOLO
 
-        device = torch.device("cpu")
-        _model = torch.load(checkpoint_path, map_location=device)
-        _model.eval()
-        _use_mock = False
-        print("[model] Checkpoint loaded successfully.")
+        STATE.model = YOLO(str(resolved_path))
+        STATE.model_path = resolved_path
+        STATE.error = None
+        return STATE
     except Exception as exc:
-        print(f"[model] Failed to load checkpoint ({exc}) — running in mock mode.")
-        _use_mock = True
+        STATE.model = None
+        STATE.model_path = resolved_path
+        STATE.error = f"Failed to load model checkpoint at {resolved_path}: {exc}"
+        return STATE
 
 
-# ---------------------------------------------------------------------------
-# Pre-processing helpers
-# ---------------------------------------------------------------------------
-def _preprocess(image_bytes: bytes) -> "np.ndarray":
-    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    img = img.resize((IMG_SIZE, IMG_SIZE), Image.LANCZOS)
-    arr = np.array(img, dtype=np.float32) / 255.0
-    mean = np.array([0.485, 0.456, 0.406])
-    std  = np.array([0.229, 0.224, 0.225])
-    arr = (arr - mean) / std
-    return arr, img
+def require_model() -> Any:
+    if STATE.model is None:
+        if STATE.error:
+            raise ModelNotConfiguredError(STATE.error)
+        raise ModelNotConfiguredError(f"Model checkpoint not installed. Please configure {MODEL_ENV}.")
+    return STATE.model
 
 
-# ---------------------------------------------------------------------------
-# Real inference
-# ---------------------------------------------------------------------------
-def _real_predict(arr: "np.ndarray"):
-    import torch
-    tensor = torch.tensor(arr).permute(2, 0, 1).unsqueeze(0).float()
-    with torch.no_grad():
-        out = _model(tensor)
-    logits = out["out"][0]                    # (num_classes, H, W)
-    probs  = torch.softmax(logits, dim=0)
-    pred_class_idx = probs.max(0).values.mean().item()
-    mask_idx = logits.argmax(0).numpy()       # (H, W) int array
-    confidence = float(probs.max(0).values.mean().item())
-    return mask_idx, confidence
+def _load_image(image_bytes: bytes) -> Image.Image:
+    return Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
 
-# ---------------------------------------------------------------------------
-# Mock inference — generates a realistic-looking segmentation overlay
-# ---------------------------------------------------------------------------
-def _mock_predict(original_img: Image.Image):
-    rng = np.random.default_rng(42)
-
-    # Simulate a tooth-shaped ellipse with surrounding "lesion" blobs
-    mask = np.zeros((IMG_SIZE, IMG_SIZE), dtype=np.uint8)
-
-    # Background = Sound (class 0)
-    mask[:] = 0
-
-    # Central tooth body
-    cy, cx = IMG_SIZE // 2, IMG_SIZE // 2
-    for y in range(IMG_SIZE):
-        for x in range(IMG_SIZE):
-            if ((x - cx)**2 / 60**2 + (y - cy)**2 / 90**2) < 1:
-                mask[y, x] = 1  # Early Enamel outline
-
-    # Pulp / inner region
-    for y in range(IMG_SIZE):
-        for x in range(IMG_SIZE):
-            if ((x - cx)**2 / 35**2 + (y - cy)**2 / 55**2) < 1:
-                mask[y, x] = 2  # Moderate
-
-    # Lesion blob — upper-right
-    for y in range(IMG_SIZE):
-        for x in range(IMG_SIZE):
-            if ((x - (cx+28))**2 + (y - (cy-30))**2) < 18**2:
-                mask[y, x] = 3  # Severe
-
-    # Root region — bottom
-    for y in range(IMG_SIZE):
-        for x in range(IMG_SIZE):
-            if ((x - cx)**2 / 20**2 + (y - (cy+60))**2 / 30**2) < 1:
-                mask[y, x] = 4  # Root Surface
-
-    # Small noise to look realistic
-    noise_locs = rng.integers(0, IMG_SIZE, size=(500, 2))
-    for loc in noise_locs:
-        mask[loc[0], loc[1]] = rng.integers(0, 5)
-
-    confidence = float(rng.uniform(0.78, 0.94))
-    return mask, confidence
-
-
-# ---------------------------------------------------------------------------
-# Mask → coloured RGBA PNG
-# ---------------------------------------------------------------------------
-def _colorize_mask(mask: np.ndarray, alpha: int = 190) -> Image.Image:
-    h, w = mask.shape
-    rgba = np.zeros((h, w, 4), dtype=np.uint8)
-    colors = list(CLASS_COLORS.values())
-    for idx, color in enumerate(colors):
-        region = mask == idx
-        rgba[region, :3] = color
-        rgba[region,  3] = alpha if idx > 0 else 60
-    return Image.fromarray(rgba, mode="RGBA")
-
-
-# ---------------------------------------------------------------------------
-# Public API
-# ---------------------------------------------------------------------------
-def predict(image_bytes: bytes) -> dict:
+def predict(image_bytes: bytes) -> dict[str, Any]:
+    model = require_model()
+    image = _load_image(image_bytes)
+    width, height = image.size
     t0 = time.perf_counter()
-    arr, original_img = _preprocess(image_bytes)
 
-    if _use_mock:
-        mask_arr, confidence = _mock_predict(original_img)
-    else:
-        mask_arr, confidence = _real_predict(arr)
+    results = model.predict(
+        source=image,
+        imgsz=STATE.imgsz,
+        conf=STATE.conf,
+        device=STATE.device,
+        verbose=False,
+    )
+    elapsed_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+    result = results[0]
 
-    # Determine dominant class (excluding Sound background)
-    unique, counts = np.unique(mask_arr, return_counts=True)
-    lesion_mask = unique > 0
-    if lesion_mask.any():
-        dominant_idx = int(unique[lesion_mask][counts[lesion_mask].argmax()])
-    else:
-        dominant_idx = 0
-    predicted_class = CLASSES[dominant_idx]
+    detections = []
+    class_names = getattr(model, "names", {}) or {}
 
-    # Colorise mask
-    color_mask = _colorize_mask(mask_arr)
+    def class_label(class_id: int) -> str:
+        if isinstance(class_names, dict):
+            return str(class_names.get(class_id, class_id))
+        if isinstance(class_names, (list, tuple)) and 0 <= class_id < len(class_names):
+            return str(class_names[class_id])
+        return str(class_id)
 
-    # Encode mask as base64 PNG
-    buf = io.BytesIO()
-    color_mask.save(buf, format="PNG")
-    mask_b64 = base64.b64encode(buf.getvalue()).decode()
+    boxes = getattr(result, "boxes", None)
+    if boxes is not None:
+        xyxy = boxes.xyxy.cpu().tolist()
+        confs = boxes.conf.cpu().tolist()
+        class_ids = boxes.cls.cpu().tolist()
+        for bbox, conf, class_id in zip(xyxy, confs, class_ids):
+            class_id_int = int(class_id)
+            detections.append(
+                {
+                    "class_id": class_id_int,
+                    "class_name": class_label(class_id_int),
+                    "confidence": round(float(conf), 4),
+                    "bbox": [round(float(v), 2) for v in bbox],
+                }
+            )
 
-    inference_ms = (time.perf_counter() - t0) * 1000
+    top_confidence = max((det["confidence"] for det in detections), default=0.0)
+    top_class = detections[0]["class_name"] if detections else None
 
     return {
-        "mask":         mask_b64,
-        "class":        predicted_class,
-        "confidence":   round(confidence, 4),
-        "inference_ms": round(inference_ms, 2),
+        "detections": detections,
+        "top_class": top_class,
+        "confidence": round(float(top_confidence), 4),
+        "inference_ms": elapsed_ms,
+        "image": {"width": width, "height": height},
+        "model_path": str(STATE.model_path) if STATE.model_path else None,
     }
