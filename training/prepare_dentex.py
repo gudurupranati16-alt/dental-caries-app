@@ -187,7 +187,6 @@ def build_data_yaml(output: Path, class_names: dict[str, int]) -> None:
             f"path: {output.as_posix()}",
             "train: images/train",
             "val: images/val",
-            "test: images/test",
             f"nc: {len(names)}",
             "names:",
         ]
