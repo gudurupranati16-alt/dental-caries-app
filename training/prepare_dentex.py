@@ -22,6 +22,17 @@ def is_coco(payload: Any) -> bool:
     return isinstance(payload, dict) and {"images", "annotations", "categories"}.issubset(payload.keys())
 
 
+def is_dentex_disease(payload: Any) -> bool:
+    """Return whether a payload has DENTEX's three-level diagnosis schema."""
+    return isinstance(payload, dict) and {
+        "images",
+        "annotations",
+        "categories_1",
+        "categories_2",
+        "categories_3",
+    }.issubset(payload.keys())
+
+
 def infer_split(path: Path) -> str:
     text = " / ".join([part.lower() for part in path.parts])
     if "train" in text:
@@ -48,6 +59,20 @@ def normalize_label(category: dict[str, Any] | None, annotation: dict[str, Any])
     raise ValueError("Could not infer a class label from annotation data.")
 
 
+def dentex_disease_label(
+    categories: dict[int, dict[int, dict[str, Any]]], annotation: dict[str, Any]
+) -> str:
+    """Build the documented Q<quadrant>_N<tooth>_<diagnosis> DENTEX label."""
+    names = []
+    for level in (1, 2, 3):
+        category_id = annotation.get(f"category_id_{level}")
+        category = categories[level].get(category_id)
+        if category is None or category.get("name") is None:
+            raise ValueError(f"Missing DENTEX category_id_{level}: {category_id!r}")
+        names.append(str(category["name"]).strip().replace(" ", "_"))
+    return f"Q{names[0]}_N{names[1]}_{names[2]}"
+
+
 def find_image(root: Path, file_name: str) -> Path | None:
     direct = root / file_name
     if direct.exists():
@@ -55,6 +80,11 @@ def find_image(root: Path, file_name: str) -> Path | None:
     basename = Path(file_name).name
     matches = list(root.rglob(basename))
     return matches[0] if matches else None
+
+
+def find_annotation_image(json_path: Path, root: Path, file_name: str) -> Path | None:
+    """Prefer the xray directory associated with the annotation file."""
+    return find_image(json_path.parent / "xrays", file_name) or find_image(root, file_name)
 
 
 def xywh_to_yolo(bbox: list[float], width: float, height: float) -> tuple[float, float, float, float]:
@@ -78,7 +108,7 @@ def process_coco_json(json_path: Path, root: Path, output: Path, class_names: di
     labels_dir.mkdir(parents=True, exist_ok=True)
 
     for image_id, image in images.items():
-        src = find_image(root, str(image.get("file_name", "")))
+        src = find_annotation_image(json_path, root, str(image.get("file_name", "")))
         if src is None:
             continue
         dst = images_dir / Path(str(image["file_name"])).name
@@ -105,6 +135,51 @@ def process_coco_json(json_path: Path, root: Path, output: Path, class_names: di
             (labels_dir / f"{Path(str(image['file_name'])).stem}.txt").write_text("\n".join(label_lines) + "\n", encoding="utf-8")
 
 
+def process_dentex_disease_json(
+    json_path: Path, root: Path, output: Path, class_names: dict[str, int], split: str
+) -> None:
+    payload = load_json(json_path)
+    images = {str(img["id"]): img for img in payload["images"]}
+    categories = {
+        level: {cat["id"]: cat for cat in payload[f"categories_{level}"] if isinstance(cat, dict)}
+        for level in (1, 2, 3)
+    }
+    anns_by_image: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for ann in payload["annotations"]:
+        anns_by_image[str(ann["image_id"])].append(ann)
+
+    images_dir = output / "images" / split
+    labels_dir = output / "labels" / split
+    images_dir.mkdir(parents=True, exist_ok=True)
+    labels_dir.mkdir(parents=True, exist_ok=True)
+
+    for image_id, image in images.items():
+        src = find_annotation_image(json_path, root, str(image.get("file_name", "")))
+        if src is None:
+            continue
+        dst = images_dir / Path(str(image["file_name"])).name
+        if not dst.exists():
+            shutil.copy2(src, dst)
+
+        width = float(image.get("width") or 0)
+        height = float(image.get("height") or 0)
+        if not width or not height:
+            continue
+
+        label_lines = []
+        for ann in anns_by_image.get(image_id, []):
+            bbox = ann.get("bbox")
+            if not bbox or len(bbox) != 4:
+                continue
+            label = dentex_disease_label(categories, ann)
+            class_index = class_names.setdefault(label, len(class_names))
+            x, y, w, h = xywh_to_yolo([float(v) for v in bbox], width, height)
+            label_lines.append(f"{class_index} {x:.6f} {y:.6f} {w:.6f} {h:.6f}")
+
+        if label_lines:
+            (labels_dir / f"{Path(str(image['file_name'])).stem}.txt").write_text("\n".join(label_lines) + "\n", encoding="utf-8")
+
+
 def build_data_yaml(output: Path, class_names: dict[str, int]) -> None:
     names = [name for name, _ in sorted(class_names.items(), key=lambda item: item[1])]
     yaml_text = "\n".join(
@@ -121,6 +196,18 @@ def build_data_yaml(output: Path, class_names: dict[str, int]) -> None:
     (output / "data.yaml").write_text(yaml_text + "\n", encoding="utf-8")
 
 
+def disease_class_names(paths: list[Path]) -> dict[str, int]:
+    labels = set()
+    for path in paths:
+        payload = load_json(path)
+        categories = {
+            level: {cat["id"]: cat for cat in payload[f"categories_{level}"] if isinstance(cat, dict)}
+            for level in (1, 2, 3)
+        }
+        labels.update(dentex_disease_label(categories, annotation) for annotation in payload["annotations"])
+    return {label: index for index, label in enumerate(sorted(labels))}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Prepare a DENTEX COCO-style dataset for YOLO training.")
     parser.add_argument("root", type=Path, help="Local DENTEX root directory")
@@ -134,18 +221,25 @@ def main() -> int:
     output.mkdir(parents=True, exist_ok=True)
 
     coco_files = []
+    disease_files = []
     for candidate in root.rglob("*.json"):
         payload = load_json(candidate)
-        if payload is not None and is_coco(payload):
+        if is_dentex_disease(payload):
+            disease_files.append(candidate)
+        elif is_coco(payload):
             coco_files.append(candidate)
-    if not coco_files:
+    selected_files = disease_files or coco_files
+    if not selected_files:
         raise SystemExit("No COCO-style annotation JSON files were found. Inspect the dataset first and adjust the converter.")
 
-    class_names: dict[str, int] = {}
+    class_names = disease_class_names(disease_files) if disease_files else {}
     converted = []
-    for json_path in coco_files:
+    for json_path in selected_files:
         split = infer_split(json_path)
-        process_coco_json(json_path, root, output, class_names, split)
+        if json_path in disease_files:
+            process_dentex_disease_json(json_path, root, output, class_names, split)
+        else:
+            process_coco_json(json_path, root, output, class_names, split)
         converted.append({"json": str(json_path), "split": split})
 
     build_data_yaml(output, class_names)
