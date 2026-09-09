@@ -19,7 +19,7 @@ def main() -> int:
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--device", default=None)
     parser.add_argument("--split", default="val")
-    parser.add_argument("--conf", type=float, default=0.25)
+    parser.add_argument("--conf", type=float, default=0.001)
     parser.add_argument("--iou", type=float, default=0.7)
     parser.add_argument("--project", type=Path, default=Path("training/runs"))
     parser.add_argument("--name", default=None)
