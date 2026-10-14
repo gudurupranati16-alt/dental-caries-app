@@ -125,6 +125,20 @@ def predict(image_bytes: bytes) -> dict[str, Any]:
                 }
             )
 
+    # Filter specifically for Dental Caries detection
+    caries_only = os.getenv("CARIES_ONLY", "1").lower() in ("1", "true", "yes")
+    if caries_only:
+        caries_detections = []
+        for det in detections:
+            name_lower = det["class_name"].lower()
+            if "caries" in name_lower:
+                if "deep" in name_lower:
+                    det["class_name"] = "Deep Caries"
+                else:
+                    det["class_name"] = "Dental Caries"
+                caries_detections.append(det)
+        detections = caries_detections
+
     top_confidence = max((det["confidence"] for det in detections), default=0.0)
     top_class = detections[0]["class_name"] if detections else None
 
