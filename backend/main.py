@@ -4,8 +4,11 @@ import json
 import os
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI, File, HTTPException, UploadFile
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
+# pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse
 
 from model import ModelNotConfiguredError, load_model, predict as run_predict
