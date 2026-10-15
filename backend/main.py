@@ -5,13 +5,13 @@ import os
 from pathlib import Path
 
 # pyrefly: ignore [missing-import]
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 # pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
 # pyrefly: ignore [missing-import]
 from fastapi.responses import JSONResponse
 
-from model import ModelNotConfiguredError, load_model, predict as run_predict
+from model import ModelNotConfiguredError, STATE, load_model, predict as run_predict
 
 app = FastAPI(title="Dental Caries Detection API", version="2.0.0")
 
@@ -38,12 +38,19 @@ async def root():
     return {
         "status": "ok",
         "service": "Dental Caries Detection API",
-        "model_configured": bool(os.getenv("MODEL_PATH")),
+        "model_configured": bool(STATE.model is not None),
+        "model_path": str(STATE.model_path) if STATE.model_path else None,
+        "default_confidence": STATE.conf,
+        "error": STATE.error,
     }
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+async def predict(
+    file: UploadFile = File(...),
+    conf: float | None = Query(default=None, ge=0.01, le=1.0),
+    caries_only: bool | None = Query(default=None),
+):
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=415,
@@ -55,7 +62,7 @@ async def predict(file: UploadFile = File(...)):
         raise HTTPException(status_code=413, detail=f"File too large. Maximum allowed size is {MAX_SIZE_MB} MB.")
 
     try:
-        result = run_predict(contents)
+        result = run_predict(contents, conf=conf, caries_only=caries_only)
     except ModelNotConfiguredError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:

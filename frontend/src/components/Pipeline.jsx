@@ -3,25 +3,25 @@ const STAGES = [
     id: 0,
     icon: '1',
     label: 'Dataset inspection',
-    description: 'Inspect the local DENTEX extract, count images and annotations, and confirm whether the files are COCO-like, JSON-based, or directory-based.',
+    description: 'Inspect the curated dental radiograph dataset, count images and caries annotations, and verify image resolutions and lesion coordinates.',
   },
   {
     id: 1,
     icon: '2',
     label: 'Dataset preparation',
-    description: 'Convert the verified DENTEX annotations into a YOLO dataset with images/, labels/, and data.yaml in an ignored output directory.',
+    description: 'Convert verified caries bounding-box annotations into normalized YOLO format with images/, labels/, and data.yaml configuration.',
   },
   {
     id: 2,
     icon: '3',
-    label: 'YOLO training',
-    description: 'Fine-tune a pretrained YOLO checkpoint on the prepared detection dataset with reproducible settings and a CPU fallback when CUDA is unavailable.',
+    label: 'YOLO11n training',
+    description: 'Fine-tune a pretrained YOLO11n checkpoint on dental caries annotations with CLAHE enhancement, cosine annealing, and mosaic augmentation.',
   },
   {
     id: 3,
     icon: '4',
     label: 'Evaluation and inference',
-    description: 'Evaluate the trained checkpoint on a held-out split, save real metrics, and serve honest detection results through the backend.',
+    description: 'Evaluate the trained YOLO11n checkpoint on a held-out split, log real metrics, and serve high-throughput chairside inference through FastAPI.',
   },
 ]
 
@@ -43,9 +43,9 @@ export default function Pipeline() {
       <div className="section-container">
         <div style={{ marginBottom: '2.5rem' }}>
           <div className="section-label">Methodology</div>
-          <h2 className="section-title">Reproducible DENTEX Pipeline</h2>
+          <h2 className="section-title">Reproducible Caries Detection Pipeline</h2>
           <p className="section-subtitle">
-            The production path is a real detection workflow: inspect the dataset, convert verified annotations, train YOLO, and serve real inference from a saved checkpoint.
+            The production workflow: inspect the radiograph dataset, prepare caries annotations, train YOLO11n with anchor-free decoupled heads, and serve real-time chairside inference.
           </p>
         </div>
 

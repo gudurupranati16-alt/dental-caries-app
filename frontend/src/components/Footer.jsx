@@ -70,7 +70,7 @@ export default function Footer() {
         </div>
 
         <div style={{ paddingTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-          DENTEX detection prototype. Research and educational use only. Not a clinical diagnostic device.
+          Dental Caries Detection powered by YOLO11n. Research and educational use only. Not a clinical diagnostic device.
         </div>
       </div>
     </footer>

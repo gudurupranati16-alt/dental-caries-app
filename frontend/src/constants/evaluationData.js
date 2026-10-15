@@ -1,13 +1,13 @@
-// Real Caries Detection Evaluation Data (YOLOv11n)
+// Real Caries Detection Evaluation Data (YOLO11n)
 export const DEFAULT_EVALUATION_DATA = {
   "status": "available",
-  "model_name": "YOLOv11n (Anchor-Free Caries Detector)",
-  "architecture": "YOLOv11n with C3k2 & Decoupled Prediction Heads",
+  "model_name": "YOLO11n (Anchor-Free Caries Detector)",
+  "architecture": "YOLO11n with C3k2 & Decoupled Prediction Heads",
   "task": "Dental Caries Detection & Depth Staging",
   "dataset": "Curated Dental Radiograph Caries Dataset",
   "num_epochs": 50,
   "summary": {
-    "model": "YOLOv11n",
+    "model": "YOLO11n",
     "precision": 0.814,
     "recall": 0.838,
     "f1": 0.826,
@@ -22,7 +22,7 @@ export const DEFAULT_EVALUATION_DATA = {
     "checkpoint_map50": 0.3752,
     "checkpoint_map50_95": 0.2352
   },
-  "yolov11n_metrics": [
+  "yolo11n_metrics": [
     {
       "metric": "Caries mAP@0.50",
       "score": 0.822,
@@ -73,8 +73,8 @@ export const DEFAULT_EVALUATION_DATA = {
       "category": "Deep Caries"
     }
   ],
-  "yolov11n_specs": {
-    "architecture": "YOLOv11n Nano",
+  "yolo11n_specs": {
+    "architecture": "YOLO11n Nano",
     "parameters": "3.2 Million",
     "latency": "18.4 ms",
     "fps": "54.3 FPS",
