@@ -12,6 +12,9 @@ env/
 node_modules/
 dist/
 coverage/
+.npm-cache/
+*.zip
+
 
 # Data and artifacts
 datasets/

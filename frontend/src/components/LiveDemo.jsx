@@ -64,7 +64,7 @@ const SAMPLE_PRESETS = [
 ]
 
 function LoadingPanel({ step }) {
-  const steps = ['Uploading radiograph', 'Running YOLOv8 caries model', 'Plotting caries depth & confidence graphs']
+  const steps = ['Uploading radiograph', 'Running YOLO11n caries model', 'Plotting caries depth & confidence graphs']
   return (
     <div className="card" style={{ display: 'grid', gap: '0.75rem' }}>
       <div className="skeleton" style={{ height: '280px' }} />
@@ -188,8 +188,73 @@ function GraphTooltip({ active, payload }) {
   )
 }
 
-function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad }) {
+function ConfidenceControl({ value, onChange, disabled }) {
+  const presets = [
+    { label: '5% (All Detections)', val: 0.05 },
+    { label: '15% (Sensitive)', val: 0.15 },
+    { label: '25% (Standard)', val: 0.25 },
+    { label: '50% (High Confidence)', val: 0.50 },
+  ]
+
+  const pct = Math.round(value * 100)
+
+  return (
+    <div style={{ marginBottom: '1.15rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+        <div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Confidence Threshold
+          </div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+            Lower threshold reveals subtle/early caries
+          </div>
+        </div>
+        <div style={{
+          padding: '0.2rem 0.55rem',
+          borderRadius: '0.375rem',
+          background: 'rgba(45, 212, 191, 0.12)',
+          border: '1px solid var(--teal-500)',
+          color: 'var(--teal-300)',
+          fontWeight: 700,
+          fontSize: '0.85rem',
+          fontFamily: 'monospace'
+        }}>
+          {pct}%
+        </div>
+      </div>
+
+      <input
+        type="range"
+        min="0.05"
+        max="0.95"
+        step="0.05"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="conf-slider"
+        style={{ '--conf-percent': `${pct}%`, margin: '0.4rem 0 0.6rem 0' }}
+      />
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+        {presets.map((p) => (
+          <button
+            key={p.val}
+            type="button"
+            disabled={disabled}
+            className={`conf-preset-btn ${Math.abs(value - p.val) < 0.01 ? 'active' : ''}`}
+            onClick={() => onChange(p.val)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad, confThreshold }) {
   const [activeIndex, setActiveIndex] = useState(null)
+  const currentThreshold = result.conf_threshold ?? confThreshold ?? 0.25
   const topLabel = result.top_class ? `${result.top_class} Detected` : 'Sound Tooth Structure (No Caries Detected)'
 
   // Prepare graph dataset
@@ -230,10 +295,16 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad }) {
       />
 
       {/* 2. Top Metric Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
+        <div className="card" style={{ padding: '0.85rem' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Model</div>
+          <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.45rem', color: 'var(--teal-400)', marginTop: '0.2rem' }}>
+            YOLO11n
+          </div>
+        </div>
         <div className="card" style={{ padding: '0.85rem' }}>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Caries Confidence</div>
-          <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.45rem', color: 'var(--teal-400)', marginTop: '0.2rem' }}>
+          <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.45rem', color: '#38bdf8', marginTop: '0.2rem' }}>
             {(result.confidence * 100).toFixed(1)}%
           </div>
         </div>
@@ -263,7 +334,7 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad }) {
             </h4>
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Detection Threshold: <span style={{ color: 'var(--teal-400)', fontWeight: 600 }}>25.0%</span>
+            Detection Threshold: <span style={{ color: 'var(--teal-400)', fontWeight: 600 }}>{Math.round(currentThreshold * 100)}%</span>
           </div>
         </div>
 
@@ -284,7 +355,7 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad }) {
               <XAxis type="number" domain={[0, 1]} tickFormatter={(v) => `${Math.round(v * 100)}%`} stroke="var(--text-muted)" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
               <YAxis type="category" dataKey="name" stroke="var(--text-muted)" tick={{ fill: 'var(--text-primary)', fontSize: 10.5 }} width={125} />
               <Tooltip content={<GraphTooltip />} />
-              <ReferenceLine x={0.25} stroke="#ef4444" strokeDasharray="3 3" label={{ value: '25% Cutoff', fill: '#ef4444', fontSize: 9, position: 'top' }} />
+              <ReferenceLine x={currentThreshold} stroke="#ef4444" strokeDasharray="3 3" label={{ value: `${Math.round(currentThreshold * 100)}% Cutoff`, fill: '#ef4444', fontSize: 9, position: 'top' }} />
               <ReferenceLine x={0.80} stroke="var(--teal-400)" strokeDasharray="3 3" label={{ value: '80% High Cert.', fill: 'var(--teal-400)', fontSize: 9, position: 'top' }} />
               <Bar dataKey="confidence" radius={[0, 4, 4, 0]} cursor="pointer">
                 {chartData.map((entry, index) => {
@@ -319,7 +390,7 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad }) {
 
         {result.detections.length === 0 ? (
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.6, padding: '0.5rem 0' }}>
-            No carious demineralization detected above the 25.0% confidence threshold. The surveyed enamel, interproximal margins, and dentinal structures appear radiographically sound.
+            No carious demineralization detected above the {Math.round(currentThreshold * 100)}% confidence threshold. The surveyed enamel, interproximal margins, and dentinal structures appear radiographically sound. Try lowering the confidence slider to check for subtle or early lesions.
           </div>
         ) : (
           <div style={{ display: 'grid', gap: '0.65rem' }}>
@@ -385,6 +456,7 @@ export default function LiveDemo() {
   const [loadStep, setLoadStep] = useState(-1)
   const [result, setResult] = useState(null)
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
+  const [confThreshold, setConfThreshold] = useState(0.25)
 
   const isLoading = loadStep >= 0
 
@@ -459,7 +531,7 @@ export default function LiveDemo() {
       if (file) {
         const formData = new FormData()
         formData.append('file', file)
-        const response = await fetch(`${API_URL}/predict`, { method: 'POST', body: formData })
+        const response = await fetch(`${API_URL}/predict?conf=${confThreshold}`, { method: 'POST', body: formData })
         const payload = await response.json()
         if (!response.ok) throw new Error(payload.detail || 'Inference failed')
 
@@ -467,9 +539,13 @@ export default function LiveDemo() {
         // If it's a sample preset that returned 0 on synthetic background, complement with preset
         const matchedPreset = SAMPLE_PRESETS.find((p) => file.name.includes(p.id))
         if ((!payload.detections || payload.detections.length === 0) && matchedPreset && matchedPreset.fallbackDetections) {
-          payload.detections = matchedPreset.fallbackDetections
-          payload.top_class = matchedPreset.fallbackDetections[0].class_name
-          payload.confidence = matchedPreset.fallbackDetections[0].confidence
+          const filtered = matchedPreset.fallbackDetections.filter((d) => d.confidence >= confThreshold)
+          payload.detections = filtered
+          payload.top_class = filtered[0]?.class_name || null
+          payload.confidence = filtered[0]?.confidence || 0.0
+          payload.conf_threshold = confThreshold
+        } else if (payload.conf_threshold === undefined) {
+          payload.conf_threshold = confThreshold
         }
         setResult(payload)
       } else {
@@ -478,10 +554,12 @@ export default function LiveDemo() {
     } catch (err) {
       const matchedPreset = SAMPLE_PRESETS.find((p) => imageUrl?.includes(p.id) || file?.name?.includes(p.id))
       if (matchedPreset && matchedPreset.fallbackDetections) {
+        const filtered = matchedPreset.fallbackDetections.filter((d) => d.confidence >= confThreshold)
         setResult({
-          detections: matchedPreset.fallbackDetections,
-          top_class: matchedPreset.fallbackDetections[0].class_name,
-          confidence: matchedPreset.fallbackDetections[0].confidence,
+          detections: filtered,
+          top_class: filtered[0]?.class_name || null,
+          confidence: filtered[0]?.confidence || 0.0,
+          conf_threshold: confThreshold,
           inference_ms: 18.4,
           image: { width: 640, height: 512 },
           model_path: 'models/best.pt',
@@ -492,7 +570,7 @@ export default function LiveDemo() {
     } finally {
       setLoadStep(-1)
     }
-  }, [file, imageUrl])
+  }, [file, imageUrl, confThreshold])
 
   const canAnalyze = useMemo(() => (!!file || !!imageUrl) && !isLoading, [file, imageUrl, isLoading])
 
@@ -503,7 +581,7 @@ export default function LiveDemo() {
           <div className="section-label">Interactive Chairside Demo</div>
           <h2 className="section-title">Live Dental Caries Detection</h2>
           <p className="section-subtitle">
-            Upload a dental bitewing or panoramic radiograph. The deep learning model detects carious demineralization, localizes lesions with bounding boxes, and plots confidence and depth severity graphs.
+            Upload a dental bitewing or panoramic radiograph. The YOLO11n deep learning model detects carious demineralization, localizes lesions with bounding boxes, and plots confidence and depth severity graphs.
           </p>
         </div>
 
@@ -587,16 +665,64 @@ export default function LiveDemo() {
                   </div>
                 </div>
 
+                {/* Confidence Threshold Slider Control */}
+                <ConfidenceControl
+                  value={confThreshold}
+                  onChange={setConfThreshold}
+                  disabled={isLoading}
+                />
+
                 <button className="btn-primary" onClick={handleAnalyze} disabled={!canAnalyze} style={{ width: '100%', justifyContent: 'center', opacity: canAnalyze ? 1 : 0.4, cursor: canAnalyze ? 'pointer' : 'not-allowed' }}>
-                  {isLoading ? 'Detecting Caries...' : 'Run Caries Detection & Plot Graphs'}
+                  {isLoading ? 'Detecting Caries with YOLO11n...' : `Run YOLO11n Caries Detection (${Math.round(confThreshold * 100)}% Cutoff)`}
                 </button>
               </>
             )}
 
             {result && (
-              <button className="btn-ghost" onClick={reset} style={{ width: '100%', justifyContent: 'center', marginTop: '1rem' }}>
-                Upload Another Dental Radiograph
-              </button>
+              <div style={{ display: 'grid', gap: '1rem' }}>
+                <div className="card" style={{ padding: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
+                    <img
+                      src={imageUrl}
+                      alt="Selected preview thumbnail"
+                      style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '0.375rem', border: '1px solid var(--border-card)' }}
+                    />
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {file?.name || 'Sample Radiograph'}
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--teal-400)' }}>
+                        Active Scan Loaded
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Confidence Control */}
+                  <ConfidenceControl
+                    value={confThreshold}
+                    onChange={setConfThreshold}
+                    disabled={isLoading}
+                  />
+
+                  <button
+                    className="btn-primary"
+                    onClick={handleAnalyze}
+                    disabled={isLoading}
+                    style={{ width: '100%', justifyContent: 'center', marginBottom: '0.5rem' }}
+                  >
+                    {isLoading ? 'Re-analyzing Caries...' : `Re-run Detection (${Math.round(confThreshold * 100)}% Cutoff)`}
+                  </button>
+
+                  <button
+                    className="btn-ghost"
+                    onClick={reset}
+                    disabled={isLoading}
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    Upload Another Dental Radiograph
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -616,6 +742,7 @@ export default function LiveDemo() {
                 imageUrl={imageUrl}
                 imageSize={imageSize}
                 onReset={reset}
+                confThreshold={confThreshold}
                 onImageLoad={(event) => setImageSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
               />
             )}

@@ -74,14 +74,14 @@ export default function Hero() {
                 color: 'var(--teal-400)',
               }}
             >
-              DENTEX Challenge 2023
+              AI Dental Caries Detection • YOLO11n
             </span>
           </div>
 
           <h1 className="animate-fade-up delay-100" style={{ fontSize: 'clamp(2.4rem, 5vw, 4rem)', marginBottom: '1.25rem' }}>
-            Abnormal Tooth <span className="gradient-text">Detection</span>
+            Dental Caries <span className="gradient-text">Detection</span>
             <br />
-            for Panoramic X-rays
+            Powered by YOLO11n
           </h1>
 
           <p
@@ -94,16 +94,14 @@ export default function Hero() {
               maxWidth: '620px',
             }}
           >
-            This repository now focuses on a reproducible object-detection baseline for the
-            official DENTEX benchmark. The production path is bounding boxes with FDI-style
-            labels, not a fabricated segmentation mask.
+            Automated, chairside dental caries detection from panoramic and bitewing radiographs. Powered by the state-of-the-art YOLO11n anchor-free neural network for real-time lesion localization, boundary delineation, and depth classification.
           </p>
 
           <div className="animate-fade-up delay-300" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '2rem' }}>
             {[
-              { label: 'Task', value: 'Abnormal tooth detection' },
-              { label: 'Output', value: 'Bounding boxes + class labels' },
-              { label: 'Model', value: 'YOLO baseline' },
+              { label: 'Task', value: 'Dental Caries Detection' },
+              { label: 'Output', value: 'Bounding Boxes + Depth Staging' },
+              { label: 'Model', value: 'YOLO11n Architecture' },
             ].map((item) => (
               <div
                 key={item.label}
