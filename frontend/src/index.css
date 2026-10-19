@@ -584,14 +584,6 @@ input:checked ~ .toggle-thumb { transform: translateX(24px); }
 }
 
 /* ============================================================
-   Compare slider overrides
-   ============================================================ */
-.react-compare-slider-handle {
-  background: var(--teal-400) !important;
-  width: 3px !important;
-}
-
-/* ============================================================
    Responsive
    ============================================================ */
 @media (max-width: 768px) {
@@ -651,20 +643,6 @@ input:checked ~ .toggle-thumb { transform: translateX(24px); }
   font-size: 2rem;
   color: var(--brown-300);
 }
-
-/* ============================================================
-   Comparison panel
-   ============================================================ */
-.compare-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  align-items: center;
-  transition: background var(--duration-fast);
-}
-.compare-row:hover { background: var(--bg-hover); }
 
 /* ============================================================
    Inference step indicators
@@ -833,4 +811,3 @@ input:checked ~ .toggle-thumb { transform: translateX(24px); }
   color: var(--teal-300);
   box-shadow: 0 0 8px rgba(45, 212, 191, 0.25);
 }
-

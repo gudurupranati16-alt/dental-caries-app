@@ -15,56 +15,46 @@ import {
 const API_URL = 'http://localhost:8000'
 const MAX_SIZE = 10 * 1024 * 1024
 
-const CARIES_STAGE_COLORS = {
-  0: '#2dd4bf', // Incipient Enamel Caries
-  1: '#38bdf8', // Interproximal Caries
-  2: '#f59e0b', // Dentinal Caries
-  3: '#ef4444', // Deep Pulpal Caries
+const CLASS_COLORS = {
+  0: '#2dd4bf',
+  1: '#38bdf8',
+  2: '#f59e0b',
+  3: '#ef4444',
 }
 
-const CARIES_STAGE_NAMES = {
-  0: 'Incipient Enamel Caries',
-  1: 'Interproximal Caries',
-  2: 'Dentinal Caries',
-  3: 'Deep Pulpal Caries',
+const CLASS_NAMES = {
+  0: 'Impacted',
+  1: 'Caries',
+  2: 'Periapical Lesion',
+  3: 'Deep Caries',
 }
 
 const SAMPLE_PRESETS = [
   {
     id: 'case1',
-    label: 'Case 1: Interproximal Caries',
-    type: 'Bitewing Radiograph',
+    label: 'Sample Radiograph 1',
+    type: 'Dental Radiograph',
     emoji: '🦷',
     src: '/samples/case1_panoramic.png',
-    fallbackDetections: [
-      { class_id: 1, class_name: 'Interproximal Caries', confidence: 0.92, bbox: [330, 160, 440, 265], depth: 'Enamel-Dentin Junction', clinical: 'Approximal carious lesion below contact point with adjacent tooth.' },
-      { class_id: 0, class_name: 'Incipient Enamel Caries', confidence: 0.86, bbox: [150, 210, 240, 310], depth: 'Outer 1/2 of Enamel', clinical: 'Early triangular radiolucency restricted to outer enamel layer.' },
-    ],
   },
   {
     id: 'case2',
-    label: 'Case 2: Deep Pulpal Caries',
-    type: 'Periapical Radiograph',
+    label: 'Sample Radiograph 2',
+    type: 'Dental Radiograph',
     emoji: '🔍',
     src: '/samples/case2_periapical.png',
-    fallbackDetections: [
-      { class_id: 3, class_name: 'Deep Pulpal Caries', confidence: 0.95, bbox: [245, 130, 375, 260], depth: 'Inner 1/3 Dentin / Pulp Horn', clinical: 'Extensive bowl-shaped decay penetrating deep dentin encroaching on pulp horn.' },
-    ],
   },
   {
     id: 'case3',
-    label: 'Case 3: Occlusal & Dentinal Caries',
-    type: 'Premolar Screening',
+    label: 'Sample Radiograph 3',
+    type: 'Dental Radiograph',
     emoji: '📐',
     src: '/samples/case3_bitewing.png',
-    fallbackDetections: [
-      { class_id: 2, class_name: 'Dentinal Caries', confidence: 0.89, bbox: [280, 175, 385, 275], depth: 'Middle 1/3 Dentin', clinical: 'Coronal radiolucent lesion spreading horizontally along dentinoenamel junction.' },
-    ],
   },
 ]
 
-function LoadingPanel({ step }) {
-  const steps = ['Uploading radiograph', 'Running YOLO11n caries model', 'Plotting caries depth & confidence graphs']
+function LoadingPanel({ step, model }) {
+  const steps = ['Uploading radiograph', `Running ${model} model`, 'Preparing model visualization']
   return (
     <div className="card" style={{ display: 'grid', gap: '0.75rem' }}>
       <div className="skeleton" style={{ height: '280px' }} />
@@ -80,22 +70,31 @@ function LoadingPanel({ step }) {
 
 function DetectionOverlay({ imageUrl, result, imageSize, onImageLoad, activeIndex, setActiveIndex }) {
   const { width, height } = imageSize
+  const detections = result.detections || []
+  const isSegmentation = result.model === 'DeepLabv3+'
   return (
     <div style={{ borderRadius: '0.75rem', overflow: 'hidden', border: '1px solid var(--border-card)', background: '#0a0e14' }}>
       <div style={{ position: 'relative' }}>
         <img
           src={imageUrl}
-          alt="Dental radiograph with caries detection overlay"
+          alt={isSegmentation ? 'Dental radiograph with caries segmentation overlay' : 'Dental radiograph with caries detection overlay'}
           style={{ width: '100%', display: 'block', maxHeight: '420px', objectFit: 'contain' }}
           onLoad={onImageLoad}
         />
-        {result.detections.length > 0 && width > 0 && height > 0 && (
+        {result.segmentation_mask && (
+          <img
+            src={`data:image/png;base64,${result.segmentation_mask}`}
+            alt="DeepLabv3+ caries segmentation mask"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'fill', pointerEvents: 'none' }}
+          />
+        )}
+        {!isSegmentation && detections.length > 0 && width > 0 && height > 0 && (
           <div style={{ position: 'absolute', inset: 0 }}>
-            {result.detections.map((det, index) => {
+            {detections.map((det, index) => {
               const [x1, y1, x2, y2] = det.bbox
               const isSelected = activeIndex === index
-              const color = CARIES_STAGE_COLORS[det.class_id] || '#2dd4bf'
-              const displayName = CARIES_STAGE_NAMES[det.class_id] || det.class_name
+              const color = CLASS_COLORS[det.class_id] || '#2dd4bf'
+              const displayName = CLASS_NAMES[det.class_id] || det.class_name
               return (
                 <div
                   key={`${det.class_id}-${index}`}
@@ -144,10 +143,24 @@ function DetectionOverlay({ imageUrl, result, imageSize, onImageLoad, activeInde
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', padding: '0.65rem 0.85rem', background: 'var(--bg-elevated)', color: 'var(--text-muted)', fontSize: '0.78rem', flexWrap: 'wrap' }}>
         <span>Dental Radiograph</span>
         <span style={{ color: 'var(--teal-400)', fontWeight: 500 }}>
-          {result.detections.length > 0 ? 'Click bounding box or chart bar to inspect' : 'No carious lesions found above threshold'}
+          {isSegmentation
+            ? 'DeepLabv3+ semantic segmentation overlay'
+            : detections.length > 0
+              ? 'Click a bounding box or chart bar to inspect'
+              : 'No detections found above threshold'}
         </span>
-        <span>{result.detections.length} Carious Lesion(s) Detected</span>
+        {!isSegmentation && <span>{detections.length} Detection(s) Returned</span>}
       </div>
+      {isSegmentation && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', padding: '0.65rem 0.85rem', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+          {Object.entries(CLASS_NAMES).map(([classId, name]) => (
+            <span key={classId} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ width: '0.7rem', height: '0.7rem', borderRadius: '2px', background: CLASS_COLORS[classId] }} />
+              {name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -174,16 +187,6 @@ function GraphTooltip({ active, payload }) {
         <span style={{ color: 'var(--text-secondary)' }}>Confidence:</span>
         <span style={{ fontWeight: 700 }}>{(data.confidence * 100).toFixed(1)}%</span>
       </div>
-      {data.depth && (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.74rem', color: 'var(--teal-400)' }}>
-          Depth: {data.depth}
-        </div>
-      )}
-      {data.clinical && (
-        <div style={{ marginTop: '0.25rem', fontSize: '0.72rem', color: 'var(--text-muted)', maxWidth: '220px' }}>
-          {data.clinical}
-        </div>
-      )}
     </div>
   )
 }
@@ -206,7 +209,7 @@ function ConfidenceControl({ value, onChange, disabled }) {
             Confidence Threshold
           </div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-            Lower threshold reveals subtle/early caries
+            Adjust the minimum confidence score for visible model output.
           </div>
         </div>
         <div style={{
@@ -254,33 +257,20 @@ function ConfidenceControl({ value, onChange, disabled }) {
 
 function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad, confThreshold }) {
   const [activeIndex, setActiveIndex] = useState(null)
+  const detections = result.detections || []
+  const isSegmentation = result.model === 'DeepLabv3+'
   const currentThreshold = result.conf_threshold ?? confThreshold ?? 0.25
-  const topLabel = result.top_class ? `${result.top_class} Detected` : 'Sound Tooth Structure (No Caries Detected)'
+  const topLabel = result.top_class ? `${result.top_class} Detected` : 'No trained classes detected'
 
-  // Prepare graph dataset
-  const chartData = useMemo(() => {
-    if (result.detections && result.detections.length > 0) {
-      return result.detections.map((det, index) => {
-        const displayName = CARIES_STAGE_NAMES[det.class_id] || det.class_name
-        return {
-          index,
-          name: `#${index + 1} ${displayName}`,
-          rawClass: det.class_name,
-          confidence: det.confidence,
-          color: CARIES_STAGE_COLORS[det.class_id] || '#2dd4bf',
-          depth: det.depth || 'Dentin Penetration',
-          clinical: det.clinical || `Dental caries lesion #${index + 1}`,
-        }
-      })
+  const chartData = detections.map((det, index) => {
+    const displayName = CLASS_NAMES[det.class_id] || det.class_name
+    return {
+      index,
+      name: `#${index + 1} ${displayName}`,
+      confidence: det.confidence,
+      color: CLASS_COLORS[det.class_id] || '#2dd4bf',
     }
-    // Profile view for 0 detections: show the 4 evaluated tooth caries regions
-    return [
-      { name: 'Enamel Surface', rawClass: 'Incipient Caries', confidence: 0.12, color: '#2dd4bf', clinical: 'Enamel layer intact — no incipient lesion' },
-      { name: 'Interproximal Contact', rawClass: 'Interproximal Caries', confidence: 0.14, color: '#38bdf8', clinical: 'No approximal hard tissue loss' },
-      { name: 'Dentinoenamel Jct.', rawClass: 'Dentinal Caries', confidence: 0.09, color: '#f59e0b', clinical: 'Dentin density sound' },
-      { name: 'Pulpal Chamber', rawClass: 'Deep Pulpal Caries', confidence: 0.07, color: '#ef4444', clinical: 'No pulpal encroachment' },
-    ]
-  }, [result.detections])
+  })
 
   return (
     <div style={{ display: 'grid', gap: '1.25rem' }}>
@@ -299,30 +289,31 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad, confTh
         <div className="card" style={{ padding: '0.85rem' }}>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Model</div>
           <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.45rem', color: 'var(--teal-400)', marginTop: '0.2rem' }}>
-            YOLO11n
+            {result.model}
           </div>
         </div>
-        <div className="card" style={{ padding: '0.85rem' }}>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Caries Confidence</div>
+        {!isSegmentation && <div className="card" style={{ padding: '0.85rem' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Detection Confidence</div>
           <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.45rem', color: '#38bdf8', marginTop: '0.2rem' }}>
             {(result.confidence * 100).toFixed(1)}%
           </div>
-        </div>
+        </div>}
         <div className="card" style={{ padding: '0.85rem' }}>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Inference Latency</div>
           <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.45rem', color: 'var(--brown-300)', marginTop: '0.2rem' }}>
             {result.inference_ms.toFixed(1)} ms
           </div>
         </div>
-        <div className="card" style={{ padding: '0.85rem' }}>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Carious Lesions</div>
+        {!isSegmentation && <div className="card" style={{ padding: '0.85rem' }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Detections</div>
           <div style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.45rem', color: 'var(--text-primary)', marginTop: '0.2rem' }}>
-            {result.detections.length}
+            {detections.length}
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* 3. Interactive Caries Detection Graph */}
+      {!isSegmentation && <>
       <div className="card" style={{ padding: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
@@ -330,7 +321,7 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad, confTh
               Diagnostic Chart
             </div>
             <h4 style={{ color: 'var(--text-primary)', fontSize: '1.1rem', margin: '0.2rem 0' }}>
-              {result.detections.length > 0 ? 'Caries Detection Confidence & Depth Graph' : 'Tooth Surface Caries Screening Profile'}
+              {detections.length > 0 ? 'Detection Confidence by Class' : 'No Detections Above Threshold'}
             </h4>
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -346,7 +337,7 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad, confTh
               layout="vertical"
               margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
               onClick={(state) => {
-                if (state && state.activeTooltipIndex !== undefined && result.detections.length > 0) {
+                if (state && state.activeTooltipIndex !== undefined && detections.length > 0) {
                   setActiveIndex(state.activeTooltipIndex)
                 }
               }}
@@ -375,29 +366,31 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad, confTh
           </ResponsiveContainer>
         </div>
         <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', marginTop: '0.5rem', textAlign: 'center' }}>
-          💡 Click any bar in the graph to highlight the corresponding carious lesion on the radiograph above.
+          {detections.length > 0
+            ? 'Click any bar in the graph to highlight the corresponding detection on the radiograph above.'
+            : 'No detections were returned by the selected model above the confidence threshold.'}
         </div>
       </div>
 
-      {/* 4. Caries Findings & Clinical Restorative Recommendations */}
+      {/* 4. Model Findings */}
       <div className="card" style={{ padding: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
           <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-            Clinical Findings & Triage Guidance
+            Model Findings
           </div>
           <span style={{ fontSize: '0.75rem', color: 'var(--teal-400)', fontWeight: 600 }}>{topLabel}</span>
         </div>
 
-        {result.detections.length === 0 ? (
+        {detections.length === 0 ? (
           <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.6, padding: '0.5rem 0' }}>
-            No carious demineralization detected above the {Math.round(currentThreshold * 100)}% confidence threshold. The surveyed enamel, interproximal margins, and dentinal structures appear radiographically sound. Try lowering the confidence slider to check for subtle or early lesions.
+            No trained classes were detected above the {Math.round(currentThreshold * 100)}% confidence threshold.
           </div>
         ) : (
           <div style={{ display: 'grid', gap: '0.65rem' }}>
-            {result.detections.map((det, index) => {
+            {detections.map((det, index) => {
               const isSelected = activeIndex === index
-              const color = CARIES_STAGE_COLORS[det.class_id] || '#2dd4bf'
-              const displayName = CARIES_STAGE_NAMES[det.class_id] || det.class_name
+              const color = CLASS_COLORS[det.class_id] || '#2dd4bf'
+              const displayName = CLASS_NAMES[det.class_id] || det.class_name
               return (
                 <div
                   key={`${det.class_id}-${index}`}
@@ -423,12 +416,6 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad, confTh
                     </span>
                   </div>
 
-                  {det.clinical && (
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                      {det.clinical}
-                    </div>
-                  )}
-
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.4rem' }}>
                     <span>Bounding Box: [{det.bbox.map((v) => Math.round(v)).join(', ')}]</span>
                     <span style={{ color: isSelected ? 'var(--teal-400)' : 'inherit' }}>
@@ -445,6 +432,7 @@ function ResultPanel({ result, imageUrl, imageSize, onReset, onImageLoad, confTh
           Analyze Another Dental Radiograph
         </button>
       </div>
+      </>}
     </div>
   )
 }
@@ -457,6 +445,7 @@ export default function LiveDemo() {
   const [result, setResult] = useState(null)
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 })
   const [confThreshold, setConfThreshold] = useState(0.25)
+  const [selectedModel, setSelectedModel] = useState('YOLO11n')
 
   const isLoading = loadStep >= 0
 
@@ -505,15 +494,15 @@ export default function LiveDemo() {
     setResult(null)
     if (imageUrl && !imageUrl.startsWith('/samples')) URL.revokeObjectURL(imageUrl)
     setImageUrl(preset.src)
-    setImageSize({ width: preset.fallbackDetections ? 640 : 0, height: preset.fallbackDetections ? 512 : 0 })
+    setImageSize({ width: 0, height: 0 })
 
     try {
       const response = await fetch(preset.src)
       const blob = await response.blob()
       const sampleFile = new File([blob], `${preset.id}.png`, { type: 'image/png' })
       setFile(sampleFile)
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(`Could not load sample image: ${err.message}`)
     }
   }, [imageUrl])
 
@@ -521,56 +510,26 @@ export default function LiveDemo() {
     if (!file && !imageUrl) return
     setError(null)
     setResult(null)
-    setLoadStep(0)
-    await new Promise((resolve) => setTimeout(resolve, 350))
     setLoadStep(1)
-    await new Promise((resolve) => setTimeout(resolve, 450))
-    setLoadStep(2)
 
     try {
       if (file) {
         const formData = new FormData()
         formData.append('file', file)
+        formData.append('model', selectedModel)
         const response = await fetch(`${API_URL}/predict?conf=${confThreshold}`, { method: 'POST', body: formData })
         const payload = await response.json()
         if (!response.ok) throw new Error(payload.detail || 'Inference failed')
-
-        // If backend returned detections, filter/use them
-        // If it's a sample preset that returned 0 on synthetic background, complement with preset
-        const matchedPreset = SAMPLE_PRESETS.find((p) => file.name.includes(p.id))
-        if ((!payload.detections || payload.detections.length === 0) && matchedPreset && matchedPreset.fallbackDetections) {
-          const filtered = matchedPreset.fallbackDetections.filter((d) => d.confidence >= confThreshold)
-          payload.detections = filtered
-          payload.top_class = filtered[0]?.class_name || null
-          payload.confidence = filtered[0]?.confidence || 0.0
-          payload.conf_threshold = confThreshold
-        } else if (payload.conf_threshold === undefined) {
-          payload.conf_threshold = confThreshold
-        }
         setResult(payload)
       } else {
         throw new Error('No radiograph selected.')
       }
     } catch (err) {
-      const matchedPreset = SAMPLE_PRESETS.find((p) => imageUrl?.includes(p.id) || file?.name?.includes(p.id))
-      if (matchedPreset && matchedPreset.fallbackDetections) {
-        const filtered = matchedPreset.fallbackDetections.filter((d) => d.confidence >= confThreshold)
-        setResult({
-          detections: filtered,
-          top_class: filtered[0]?.class_name || null,
-          confidence: filtered[0]?.confidence || 0.0,
-          conf_threshold: confThreshold,
-          inference_ms: 18.4,
-          image: { width: 640, height: 512 },
-          model_path: 'models/best.pt',
-        })
-      } else {
-        setError(err.message || 'Could not contact the backend inference service.')
-      }
+      setError(err.message || 'Could not contact the backend inference service.')
     } finally {
       setLoadStep(-1)
     }
-  }, [file, imageUrl, confThreshold])
+  }, [file, imageUrl, confThreshold, selectedModel])
 
   const canAnalyze = useMemo(() => (!!file || !!imageUrl) && !isLoading, [file, imageUrl, isLoading])
 
@@ -579,9 +538,9 @@ export default function LiveDemo() {
       <div className="section-container">
         <div style={{ marginBottom: '2.5rem' }}>
           <div className="section-label">Interactive Chairside Demo</div>
-          <h2 className="section-title">Live Dental Caries Detection</h2>
+          <h2 className="section-title">Dental Radiograph Analysis</h2>
           <p className="section-subtitle">
-            Upload a dental bitewing or panoramic radiograph. The YOLO11n deep learning model detects carious demineralization, localizes lesions with bounding boxes, and plots confidence and depth severity graphs.
+            Upload a dental radiograph, choose YOLO11n detection or DeepLabv3+ segmentation, and inspect the model output.
           </p>
         </div>
 
@@ -639,7 +598,7 @@ export default function LiveDemo() {
                 {/* Sample Presets */}
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Or test with a verified dental caries case
+                    Or analyze a sample radiograph
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.5rem' }}>
                     {SAMPLE_PRESETS.map((sample) => (
@@ -673,10 +632,30 @@ export default function LiveDemo() {
                 />
 
                 <button className="btn-primary" onClick={handleAnalyze} disabled={!canAnalyze} style={{ width: '100%', justifyContent: 'center', opacity: canAnalyze ? 1 : 0.4, cursor: canAnalyze ? 'pointer' : 'not-allowed' }}>
-                  {isLoading ? 'Detecting Caries with YOLO11n...' : `Run YOLO11n Caries Detection (${Math.round(confThreshold * 100)}% Cutoff)`}
+                  {isLoading ? `Analyzing with ${selectedModel}...` : `Run ${selectedModel} (${Math.round(confThreshold * 100)}% Cutoff)`}
                 </button>
               </>
             )}
+
+            <div className="card" style={{ padding: '1rem', marginBottom: '1rem' }}>
+              <label htmlFor="model-choice" style={{ display: 'block', color: 'var(--text-primary)', fontWeight: 600, marginBottom: '0.5rem' }}>
+                Choose among the following models
+              </label>
+              <select
+                id="model-choice"
+                value={selectedModel}
+                onChange={(event) => {
+                  setSelectedModel(event.target.value)
+                  setResult(null)
+                  setError(null)
+                }}
+                disabled={isLoading}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: 'var(--bg-deep)', color: 'var(--text-primary)', border: '1px solid var(--border-card)' }}
+              >
+                <option value="YOLO11n">YOLO11n</option>
+                <option value="DeepLabv3+">DeepLabv3+</option>
+              </select>
+            </div>
 
             {result && (
               <div style={{ display: 'grid', gap: '1rem' }}>
@@ -710,7 +689,7 @@ export default function LiveDemo() {
                     disabled={isLoading}
                     style={{ width: '100%', justifyContent: 'center', marginBottom: '0.5rem' }}
                   >
-                    {isLoading ? 'Re-analyzing Caries...' : `Re-run Detection (${Math.round(confThreshold * 100)}% Cutoff)`}
+                    {isLoading ? 'Re-running Analysis...' : `Re-run Detection (${Math.round(confThreshold * 100)}% Cutoff)`}
                   </button>
 
                   <button
@@ -734,7 +713,7 @@ export default function LiveDemo() {
               </div>
             )}
 
-            {isLoading && <LoadingPanel step={loadStep} />}
+            {isLoading && <LoadingPanel step={loadStep} model={selectedModel} />}
 
             {result && imageUrl && (
               <ResultPanel

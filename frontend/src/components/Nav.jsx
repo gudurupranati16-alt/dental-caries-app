@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react'
 
 const NAV_LINKS = [
-  { id: 'problem',      label: 'Problem' },
-  { id: 'pipeline',     label: 'Pipeline' },
-  { id: 'demo',         label: 'Live Demo' },
-  { id: 'results',      label: 'Results' },
-  { id: 'architecture', label: 'Architecture' },
+  { id: 'demo', label: 'Image Analysis' },
+  { id: 'results', label: 'Graphs' },
 ]
 
 export default function Nav() {

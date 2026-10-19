@@ -38,7 +38,7 @@ def resolve_device(requested: str | None) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Train a YOLO baseline on prepared DENTEX data.")
     parser.add_argument("--data", required=True, type=Path, help="Path to data.yaml")
-    parser.add_argument("--model", default="yolov8n.pt", help="Pretrained YOLO checkpoint to fine-tune")
+    parser.add_argument("--model", default="yolo11n.pt", help="Pretrained YOLO11n checkpoint to fine-tune")
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--batch", type=int, default=8)
@@ -104,4 +104,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -16,7 +16,7 @@ python training/inspect_dentex.py C:\datasets\DENTEX --report-json training\arti
 ```
 
 ## 3. Prepare
-- The selected baseline is YOLO object detection because DENTEX provides bounding-box supervision for abnormal teeth.
+- YOLO11n is the object-detection model; DENTEX provides bounding-box supervision for abnormal teeth.
 - If the dataset extract is COCO-like, convert it to YOLO format:
 
 ```powershell
@@ -32,7 +32,7 @@ python -m pip install -r training/requirements.txt
 
 ## 5. Train
 ```powershell
-python training/train_yolo.py --data C:\datasets\DENTEX_yolo\data.yaml --model yolov8n.pt --epochs 50 --imgsz 640 --batch 8
+python training/train_yolo.py --data C:\datasets\DENTEX_yolo\data.yaml --model yolo11n.pt --epochs 50 --imgsz 640 --batch 8
 ```
 
 The best checkpoint is written inside `training/runs/.../weights/best.pt`.
@@ -44,15 +44,17 @@ python training/evaluate.py --data C:\datasets\DENTEX_yolo\data.yaml --model tra
 
 This writes a real evaluation JSON next to the run directory.
 
-## 7. Backend Configuration
-- Set the checkpoint path before starting the API:
+## 7. Backend Checkpoints
+- The application loads YOLO11n from `dental-caries-app/models/best.pt` and DeepLabv3+ from the repository-level `model/best_deeplabv3plus_dental.pth`.
+- Override either default with `YOLO_MODEL_PATH` or `DEEPLAB_MODEL_PATH`; set `MODEL_DEVICE` to choose a PyTorch device.
+- Set the YOLO checkpoint path before training or starting the API when using a custom checkpoint:
 
 ```powershell
-$env:MODEL_PATH = "C:\datasets\DENTEX_yolo\training\runs\...\weights\best.pt"
+$env:YOLO_MODEL_PATH = "C:\datasets\DENTEX_yolo\training\runs\...\weights\best.pt"
 python -m uvicorn backend.main:app --reload
 ```
 
-- If `MODEL_PATH` is missing, `/predict` returns a clear error instead of a fake diagnosis.
+- `/predict` accepts a `model` form field with either `YOLO11n` or `DeepLabv3+`. It returns a clear error when the selected checkpoint cannot be loaded.
 
 ## 8. Run The App
 - Backend:
@@ -72,4 +74,3 @@ npm run dev
 - The scripts are designed for local CUDA machines, Kaggle, and Colab.
 - Use the same extracted dataset and checkpoint path when repeating an experiment.
 - Training and evaluation outputs stay in ignored `training/runs/` and `training/artifacts/` directories.
-

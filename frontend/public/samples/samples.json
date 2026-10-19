@@ -1,81 +1,23 @@
 [
   {
     "id": "case1",
-    "label": "Case 1: Interproximal Caries",
-    "type": "Bitewing Radiograph",
+    "label": "Sample Radiograph 1",
+    "type": "Dental Radiograph",
     "emoji": "\ud83e\uddb7",
-    "src": "/samples/case1_panoramic.png",
-    "fallbackDetections": [
-      {
-        "class_id": 1,
-        "class_name": "Interproximal Caries",
-        "confidence": 0.92,
-        "bbox": [
-          330,
-          160,
-          440,
-          265
-        ],
-        "depth": "Enamel-Dentin Junction",
-        "clinical": "Approximal carious lesion below contact point with adjacent tooth."
-      },
-      {
-        "class_id": 0,
-        "class_name": "Incipient Enamel Caries",
-        "confidence": 0.86,
-        "bbox": [
-          150,
-          210,
-          240,
-          310
-        ],
-        "depth": "Outer 1/2 of Enamel",
-        "clinical": "Early triangular radiolucency restricted to outer enamel layer."
-      }
-    ]
+    "src": "/samples/case1_panoramic.png"
   },
   {
     "id": "case2",
-    "label": "Case 2: Deep Pulpal Caries",
-    "type": "Periapical Radiograph",
+    "label": "Sample Radiograph 2",
+    "type": "Dental Radiograph",
     "emoji": "\ud83d\udd0d",
-    "src": "/samples/case2_periapical.png",
-    "fallbackDetections": [
-      {
-        "class_id": 3,
-        "class_name": "Deep Pulpal Caries",
-        "confidence": 0.95,
-        "bbox": [
-          245,
-          130,
-          375,
-          260
-        ],
-        "depth": "Inner 1/3 Dentin / Pulp Horn",
-        "clinical": "Extensive bowl-shaped decay penetrating deep dentin encroaching on pulp horn."
-      }
-    ]
+    "src": "/samples/case2_periapical.png"
   },
   {
     "id": "case3",
-    "label": "Case 3: Occlusal & Dentinal Caries",
-    "type": "Premolar Screening",
+    "label": "Sample Radiograph 3",
+    "type": "Dental Radiograph",
     "emoji": "\ud83d\udcd0",
-    "src": "/samples/case3_bitewing.png",
-    "fallbackDetections": [
-      {
-        "class_id": 2,
-        "class_name": "Dentinal Caries",
-        "confidence": 0.89,
-        "bbox": [
-          280,
-          175,
-          385,
-          275
-        ],
-        "depth": "Middle 1/3 Dentin",
-        "clinical": "Coronal radiolucent lesion spreading horizontally along dentinoenamel junction."
-      }
-    ]
+    "src": "/samples/case3_bitewing.png"
   }
 ]
