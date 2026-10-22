@@ -1,15 +1,15 @@
-import os
 from pathlib import Path
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import torch
 
-output_dir = Path(r"c:\Users\MOHIT\OneDrive\Desktop\DENTAL\dental-caries-app\docs\charts")
+app_root = Path(__file__).resolve().parent.parent
+output_dir = app_root / "docs" / "charts"
 output_dir.mkdir(parents=True, exist_ok=True)
 
 # 1. Load exact checkpoint data
-ckpt_path = Path(r"c:\Users\MOHIT\OneDrive\Desktop\DENTAL\dental-caries-app\models\best.pt")
+ckpt_path = app_root / "models" / "YOLO11n_best_checkpoint.pt"
 ckpt = torch.load(ckpt_path, map_location='cpu')
 res = ckpt.get('train_results', {})
 epochs = list(range(1, 51))

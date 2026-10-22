@@ -45,15 +45,16 @@ python training/evaluate.py --data C:\datasets\DENTEX_yolo\data.yaml --model tra
 This writes a real evaluation JSON next to the run directory.
 
 ## 7. Backend Checkpoints
-- The application loads YOLO11n from `dental-caries-app/models/best.pt` and DeepLabv3+ from the repository-level `model/best_deeplabv3plus_dental.pth`.
-- Override either default with `YOLO_MODEL_PATH` or `DEEPLAB_MODEL_PATH`; set `MODEL_DEVICE` to choose a PyTorch device.
-- Set the YOLO checkpoint path before training or starting the API when using a custom checkpoint:
+- The application loads YOLO11n from `models/YOLO11n_best_checkpoint.pt` and DeepLabv3+ from `models/DeepLabV3+_best_checkpoint.pt.pth`, both relative to the repository root.
+- To assign custom checkpoint paths, set `YOLO_MODEL_PATH` for YOLO11n and/or `DEEPLAB_MODEL_PATH` for DeepLabv3+ before starting the API. Set `MODEL_DEVICE` to choose a PyTorch device. For example:
 
 ```powershell
 $env:YOLO_MODEL_PATH = "C:\datasets\DENTEX_yolo\training\runs\...\weights\best.pt"
+$env:DEEPLAB_MODEL_PATH = "C:\models\my-deeplab-checkpoint.pth"
 python -m uvicorn backend.main:app --reload
 ```
 
+- Each variable is optional and independent. If unset, the backend uses the corresponding default file in `models\`.
 - `/predict` accepts a `model` form field with either `YOLO11n` or `DeepLabv3+`. It returns a clear error when the selected checkpoint cannot be loaded.
 
 ## 8. Run The App

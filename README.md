@@ -15,13 +15,22 @@ This repository contains a small web application plus training code for the DENT
 
 ## Current ML Scope
 - The app supports two selectable inference models: YOLO11n object detection and DeepLabv3+ semantic segmentation.
-- YOLO11n loads `models/best.pt`; DeepLabv3+ loads `../model/best_deeplabv3plus_dental.pth` by default.
+- By default, YOLO11n loads `models/YOLO11n_best_checkpoint.pt` and DeepLabv3+ loads `models/DeepLabV3+_best_checkpoint.pt.pth`. Both paths are relative to the repository root.
+- Model checkpoint files are excluded from Git; place the files in `models/` using these names, or assign custom paths with the environment variables below.
 - YOLO11n class IDs map to 0: Impacted, 1: Caries, 2: Periapical Lesion, and 3: Deep Caries. DeepLabv3+ reserves output channel 0 for background and maps channels 1–4 to those classes in the same order.
-- Override the checkpoint locations with `YOLO_MODEL_PATH` and `DEEPLAB_MODEL_PATH`. The backend reports an explicit error if a selected checkpoint cannot be loaded.
+- To use different checkpoint files, set `YOLO_MODEL_PATH` and/or `DEEPLAB_MODEL_PATH` before starting the backend. For example, in PowerShell:
+
+  ```powershell
+  $env:YOLO_MODEL_PATH = "C:\models\my-yolo-checkpoint.pt"
+  $env:DEEPLAB_MODEL_PATH = "C:\models\my-deeplab-checkpoint.pth"
+  python -m uvicorn backend.main:app --reload
+  ```
+
+  These variables are independent; set only the one you want to override. The backend reports an explicit error if a selected checkpoint cannot be loaded.
 
 ## Training And Evaluation
 - Read [training/README.md](training/README.md) for download, preparation, training, and evaluation commands.
-- The graphs read YOLO11n metrics from `docs/YOLO11n_training_summary.csv` and DeepLabv3+ metrics from the repository-level `model/DeepLabV3+_training_summary.csv`. Keep these files available to the backend; all logged columns other than the epoch are graphed, with individual graphs and cross-model metric selection in the frontend.
+- The graphs read YOLO11n metrics from `docs/YOLO11n_training_summary.csv` and DeepLabv3+ metrics from `docs/DeepLabV3+_training_summary.csv`. Keep these files available to the backend; all logged columns other than the epoch are graphed, with individual graphs and cross-model metric selection in the frontend.
 - The prepared dataset and run outputs should live outside the Git checkout or in ignored directories.
 
 ## Run The App
