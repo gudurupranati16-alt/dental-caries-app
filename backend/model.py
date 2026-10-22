@@ -190,13 +190,14 @@ class DeepLabV3Plus(nn.Module):
 
 def _default_paths() -> dict[str, Path]:
     app_root = Path(__file__).resolve().parent.parent
-    repo_root = app_root.parent
     return {
-        YOLO11N: Path(os.getenv(MODEL_PATH_ENV, app_root / "models" / "best.pt")).expanduser().resolve(),
+        YOLO11N: Path(
+            os.getenv(MODEL_PATH_ENV, app_root / "models" / "YOLO11n_best_checkpoint.pt")
+        ).expanduser().resolve(),
         DEEPLABV3_PLUS: Path(
             os.getenv(
                 DEEPLAB_PATH_ENV,
-                repo_root / "model" / "best_deeplabv3plus_dental.pth",
+                app_root / "models" / "DeepLabV3+_best_checkpoint.pt.pth",
             )
         ).expanduser().resolve(),
     }

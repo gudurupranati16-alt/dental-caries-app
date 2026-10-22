@@ -34,10 +34,9 @@ app.add_middleware(
 
 RESULTS_PATH = Path(os.getenv("EVAL_PATH", Path(__file__).with_name("results.json")))
 APP_ROOT = Path(__file__).resolve().parent.parent
-REPOSITORY_ROOT = APP_ROOT.parent
 TRAINING_SUMMARIES = {
     YOLO11N: APP_ROOT / "docs" / "YOLO11n_training_summary.csv",
-    DEEPLABV3_PLUS: REPOSITORY_ROOT / "model" / "DeepLabV3+_training_summary.csv",
+    DEEPLABV3_PLUS: APP_ROOT / "docs" / "DeepLabV3+_training_summary.csv",
 }
 DEEPLAB_CLASS_NAMES = {
     0: "Background",

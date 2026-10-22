@@ -13,10 +13,18 @@ YOLO11n class IDs are 0: Impacted, 1: Caries, 2: Periapical Lesion, and 3: Deep 
 
 By default the backend loads:
 
-- `dental-caries-app/models/best.pt`
-- `model/best_deeplabv3plus_dental.pth` at the repository root
+- `models/YOLO11n_best_checkpoint.pt` for YOLO11n
+- `models/DeepLabV3+_best_checkpoint.pt.pth` for DeepLabv3+
 
-Use `YOLO_MODEL_PATH` or `DEEPLAB_MODEL_PATH` to override either path. `MODEL_DEVICE`, `MODEL_CONFIDENCE`, and `MODEL_IMGSZ` configure device, confidence cutoff, and inference input size.
+Both default paths are relative to the repository root. To assign custom paths, set `YOLO_MODEL_PATH` for YOLO11n and/or `DEEPLAB_MODEL_PATH` for DeepLabv3+ before starting the backend. For example, in PowerShell:
+
+```powershell
+$env:YOLO_MODEL_PATH = "C:\models\my-yolo-checkpoint.pt"
+$env:DEEPLAB_MODEL_PATH = "C:\models\my-deeplab-checkpoint.pth"
+python -m uvicorn backend.main:app --reload
+```
+
+Each variable is optional and can be used independently. `MODEL_DEVICE`, `MODEL_CONFIDENCE`, and `MODEL_IMGSZ` configure device, confidence cutoff, and inference input size.
 
 ## Inference contract
 
@@ -26,4 +34,4 @@ The backend does not generate simulated diagnoses. If the selected checkpoint ca
 
 ## Training graphs
 
-`GET /training-metrics` reads the epoch summaries from `docs/YOLO11n_training_summary.csv` and the repository-level `model/DeepLabV3+_training_summary.csv`. Every recorded numeric column except `epoch` is exposed as a selectable series. The frontend plots each metric separately and also provides two model-specific multi-select menus for combined graphs. Best score/loss epochs and final epochs for other series are marked on the charts.
+`GET /training-metrics` reads the epoch summaries from `docs/YOLO11n_training_summary.csv` and `docs/DeepLabV3+_training_summary.csv`. Every recorded numeric column except `epoch` is exposed as a selectable series. The frontend plots each metric separately and also provides two model-specific multi-select menus for combined graphs. Best score/loss epochs and final epochs for other series are marked on the charts.
